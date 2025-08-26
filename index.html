@@ -93,6 +93,9 @@
         </div>
     </div>
 
+    <!-- QRCode.js library - Must be loaded BEFORE the module script that uses window.QRCode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
+
     <!-- Firebase SDKs -->
     <script type="module">
         // Import the functions you need from the SDKs you need
@@ -316,7 +319,8 @@
             if (url) {
                 // Clear any previous error messages related to generation
                 showMessage('success', 'QR Code generated successfully!');
-                QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
+                // Explicitly use window.QRCode to access the globally loaded library
+                window.QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
                     if (error) {
                         console.error(error);
                         showMessage('error', 'Error generating QR code on canvas.');
@@ -388,7 +392,5 @@
             }
         });
     </script>
-    <!-- QRCode.js library - must be loaded after the script that uses it, but not as a module -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
