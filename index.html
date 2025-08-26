@@ -13,6 +13,9 @@
             font-family: 'Inter', sans-serif;
         }
     </style>
+
+    <!-- QRCode.js library - Moved to head to ensure it's loaded globally before module scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
@@ -93,9 +96,6 @@
         </div>
     </div>
 
-    <!-- QRCode.js library - Must be loaded BEFORE the module script that uses window.QRCode -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
-
     <!-- Firebase SDKs -->
     <script type="module">
         // Import the functions you need from the SDKs you need
@@ -170,8 +170,8 @@
             return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
         }
 
-        // Initialize Firebase
-        window.onload = async () => {
+        // Initialize Firebase when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
             if (Object.keys(firebaseConfig).length === 0) {
                 showMessage('error', 'Firebase configuration is missing. Cannot initialize Firebase.');
                 return;
@@ -208,7 +208,7 @@
                 console.error('Error initializing Firebase:', error);
                 showMessage('error', `Firebase initialization error: ${error.message}`);
             }
-        };
+        });
 
         // Function to construct the base URL for the QR codes
         function getBaseUrl() {
@@ -317,18 +317,22 @@
             const canvas = document.getElementById('qrCodeCanvas');
             const qrCodeLink = document.getElementById('qrCodeLink');
             if (url) {
-                // Clear any previous error messages related to generation
-                showMessage('success', 'QR Code generated successfully!');
-                // Explicitly use window.QRCode to access the globally loaded library
-                window.QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
-                    if (error) {
-                        console.error(error);
-                        showMessage('error', 'Error generating QR code on canvas.');
-                    }
-                });
-                qrCodeLink.href = url;
-                qrCodeLink.textContent = url;
-                document.getElementById('qrCodeDisplay').classList.remove('hidden');
+                if (typeof window.QRCode !== 'undefined') { // Explicitly check if the global QRCode object is available
+                    showMessage('success', 'QR Code generated successfully!');
+                    window.QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
+                        if (error) {
+                            console.error('Error in QRCode.toCanvas:', error);
+                            showMessage('error', 'Error rendering QR code on canvas.');
+                        }
+                    });
+                    qrCodeLink.href = url;
+                    qrCodeLink.textContent = url;
+                    document.getElementById('qrCodeDisplay').classList.remove('hidden');
+                } else {
+                    console.error("QR Code library (window.QRCode) is not defined. Ensure qrcode.min.js is loaded correctly.");
+                    showMessage('error', 'QR code generation library failed to load. Please check console for details.');
+                    document.getElementById('qrCodeDisplay').classList.add('hidden');
+                }
             } else {
                 document.getElementById('qrCodeDisplay').classList.add('hidden');
             }
