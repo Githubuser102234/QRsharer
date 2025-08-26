@@ -13,11 +13,11 @@
             font-family: 'Inter', sans-serif;
         }
     </style>
-
-    <!-- QRCode.js library - Moved to head to ensure it's loaded globally before module scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- QRCode.js library - MUST be loaded here, at the beginning of body, BEFORE any module script that uses it -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
+
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
         <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Advanced QR Code Generator</h1>
         <p class="text-sm text-gray-600 mb-4 text-center">
@@ -329,7 +329,7 @@
                     qrCodeLink.textContent = url;
                     document.getElementById('qrCodeDisplay').classList.remove('hidden');
                 } else {
-                    console.error("QR Code library (window.QRCode) is not defined. Ensure qrcode.min.js is loaded correctly.");
+                    console.error("QR Code library (window.QRCode) is not defined. Ensure qrcode.min.js is loaded correctly and before module scripts.");
                     showMessage('error', 'QR code generation library failed to load. Please check console for details.');
                     document.getElementById('qrCodeDisplay').classList.add('hidden');
                 }
