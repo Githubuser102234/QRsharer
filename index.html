@@ -12,6 +12,15 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Custom styling for the QR code container to ensure it's visible even when empty */
+        #qrCodeCanvas {
+            min-width: 256px; /* Match QRCode.js width option */
+            min-height: 256px; /* Match QRCode.js height option */
+            display: flex; /* To help center the generated QR code if it doesn't fill the div */
+            align-items: center;
+            justify-content: center;
+            margin: auto; /* Center the div itself */
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
@@ -76,7 +85,8 @@
         <div id="qrCodeDisplay" class="hidden mt-8 text-center bg-gray-50 p-6 rounded-lg border border-gray-200">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Your QR Code</h2>
             <div class="flex justify-center mb-4">
-                <canvas id="qrCodeCanvas" class="rounded-lg shadow-md"></canvas>
+                <!-- Changed from <canvas> to <div> for qrcode.js to render into -->
+                <div id="qrCodeCanvas" class="rounded-lg shadow-md"></div>
             </div>
             <p class="text-gray-700 text-sm break-all">
                 Scan this QR code to redirect to: <a id="qrCodeLink" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"></a>
@@ -323,28 +333,31 @@
             }
         }
 
-        // Function to display the QR code on the canvas
+        // Function to display the QR code on the div container
         function displayQrCode(url) {
-            const canvas = document.getElementById('qrCodeCanvas');
+            const qrCodeCanvasContainer = document.getElementById('qrCodeCanvas'); // This is now a div
             const qrCodeLink = document.getElementById('qrCodeLink');
+
             if (url) {
                 if (typeof window.QRCode !== 'undefined') { // Explicitly check if the global QRCode object is available
                     showMessage('success', 'QR Code generated successfully!');
 
-                    // If an instance already exists, update it. Otherwise, create a new one.
-                    if (qrCodeObject) {
-                        qrCodeObject.makeCode(url); // Update existing QR code
-                    } else {
-                        // Create a new QRCode instance targeting the canvas directly
-                        qrCodeObject = new QRCode(canvas, {
-                            text: url,
-                            width: 256,
-                            height: 256,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.H
-                        });
-                    }
+                    // Clear the content of the container div before generating a new QR code
+                    // This is crucial because qrcode.js appends a new canvas/table each time.
+                    qrCodeCanvasContainer.innerHTML = '';
+
+                    // Create a new QRCode instance targeting the container div
+                    // The qrCodeObject is no longer needed globally if we re-create it each time.
+                    // However, it's good practice to keep it if we intend to reuse options or methods later.
+                    // For this approach, we create a new one, letting qrcode.js manage its internal canvas.
+                    new QRCode(qrCodeCanvasContainer, {
+                        text: url,
+                        width: 256,
+                        height: 256,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
 
                     qrCodeLink.href = url;
                     qrCodeLink.textContent = url;
