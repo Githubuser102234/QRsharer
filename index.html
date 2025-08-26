@@ -207,6 +207,13 @@
             }
         };
 
+        // Function to construct the base URL for the QR codes
+        function getBaseUrl() {
+            // Combines origin (e.g., https://githubuser102234.github.io)
+            // with pathname (e.g., /QRsharer/)
+            return window.location.origin + window.location.pathname;
+        }
+
         // Function to fetch and display recent QR codes
         function fetchQrCodes() {
             if (!db || !isAuthReady) return;
@@ -226,6 +233,7 @@
 
                 snapshot.docs.slice(0, 5).forEach(doc => { // Show up to the last 5 generated codes
                     const code = { id: doc.id, ...doc.data() };
+                    const fullUrl = `${getBaseUrl()}?id=${code.id}`; // Use getBaseUrl() here
                     const listItem = document.createElement('li');
                     listItem.className = 'bg-blue-50 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center';
                     listItem.innerHTML = `
@@ -234,7 +242,7 @@
                                 <span class="font-bold">Text:</span> ${code.text}
                             </p>
                             <p class="text-xs text-gray-600 mt-1 break-all">
-                                <span class="font-bold">Link:</span> <a href="${window.location.origin}/?id=${code.id}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${window.location.origin}/?id=${code.id}</a>
+                                <span class="font-bold">Link:</span> <a href="${fullUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${fullUrl}</a>
                             </p>
                         </div>
                         <div class="mt-2 sm:mt-0 flex-shrink-0">
@@ -255,7 +263,7 @@
                 document.querySelectorAll('.show-qr-btn').forEach(button => {
                     button.onclick = () => {
                         const qrId = button.dataset.id;
-                        const fullUrl = `${window.location.origin}/?id=${qrId}`;
+                        const fullUrl = `${getBaseUrl()}?id=${qrId}`; // Use getBaseUrl() here
                         displayQrCode(fullUrl);
                     };
                 });
@@ -347,7 +355,7 @@
                     createdBy: userId,
                 });
 
-                const fullUrl = `${window.location.origin}/?id=${docRef.id}`;
+                const fullUrl = `${getBaseUrl()}?id=${docRef.id}`; // Use getBaseUrl() here
                 displayQrCode(fullUrl);
                 document.getElementById('inputText').value = ''; // Clear input after generation
 
@@ -371,9 +379,9 @@
             document.getElementById('inputSection').classList.remove('hidden');
             document.getElementById('recentCodesSection').classList.remove('hidden');
             showMessage(''); // Clear messages
-            // Clear the URL parameter if possible without reloading, or just refresh to original state
+            // Clear the URL parameter from the current URL without changing the path
             if (window.history.pushState) {
-                const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                const newurl = window.location.origin + window.location.pathname; // Keep origin and path
                 window.history.pushState({ path: newurl }, '', newurl);
             } else {
                 window.location.href = window.location.origin + window.location.pathname; // Fallback for older browsers
