@@ -15,7 +15,7 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <!-- QRCode.js library - now loaded from jsDelivr -->
+    <!-- QRCode.js library - loaded from jsDelivr -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
@@ -105,6 +105,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
+        // In a real application, these would be environment variables
         const firebaseConfig = {
             apiKey: "AIzaSyAVRkI7wPbzoNtWaREM0T0K49w_8odLOyw",
             authDomain: "qrsharer-9b4d7.firebaseapp.com",
@@ -121,6 +122,7 @@
         let analytics; // Declare analytics variable
         let userId = null;
         let isAuthReady = false; // Flag to indicate if Firebase authentication is ready
+        let qrCodeObject = null; // Global variable to store the QRCode.js instance
 
         // Helper function to show messages
         function showMessage(type, message) {
@@ -172,13 +174,18 @@
 
         // Initialize Firebase when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', async () => {
-            if (Object.keys(firebaseConfig).length === 0) {
+            // Using Canvas-provided global variables if available
+            const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+            const firebaseRuntimeConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            if (Object.keys(firebaseRuntimeConfig).length === 0) {
                 showMessage('error', 'Firebase configuration is missing. Cannot initialize Firebase.');
                 return;
             }
 
             try {
-                app = initializeApp(firebaseConfig);
+                app = initializeApp(firebaseRuntimeConfig);
                 analytics = getAnalytics(app); // Initialize analytics
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -187,8 +194,11 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (!user) {
                         try {
-                            // On GitHub Pages, __initial_auth_token won't be available, so sign in anonymously
-                            await signInAnonymously(auth);
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
                         } catch (error) {
                             console.error('Error signing in:', error);
                             showMessage('error', `Authentication error: ${error.message}`);
@@ -197,7 +207,8 @@
                     userId = auth.currentUser?.uid || crypto.randomUUID();
                     document.getElementById('userIdDisplay').textContent = userId;
                     isAuthReady = true; // Mark authentication as ready
-                    document.getElementById('generateQrCodeBtn').disabled = false; // Enable button once auth is ready
+                    // Ensure the button is enabled only if there's text and auth is ready
+                    document.getElementById('generateQrCodeBtn').disabled = !document.getElementById('inputText').value.trim();
 
                     // Once authenticated, check for URL ID and set up real-time listener
                     fetchQrCodes();
@@ -222,7 +233,7 @@
             if (!db || !isAuthReady) return;
 
             // Use projectId from firebaseConfig as appId
-            const appId = firebaseConfig.projectId;
+            const appId = firebaseConfig.projectId; // Or use the dynamic appId if passed
             const qrCodesCollectionRef = collection(db, `artifacts/${appId}/public/data/qr_codes`);
 
             onSnapshot(qrCodesCollectionRef, (snapshot) => {
@@ -319,16 +330,22 @@
             if (url) {
                 if (typeof window.QRCode !== 'undefined') { // Explicitly check if the global QRCode object is available
                     showMessage('success', 'QR Code generated successfully!');
-                    // Clear previous QR code before drawing new one
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    window.QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
-                        if (error) {
-                            console.error('Error in QRCode.toCanvas:', error);
-                            showMessage('error', 'Error rendering QR code on canvas.');
-                        }
-                    });
+                    // If an instance already exists, update it. Otherwise, create a new one.
+                    if (qrCodeObject) {
+                        qrCodeObject.makeCode(url); // Update existing QR code
+                    } else {
+                        // Create a new QRCode instance targeting the canvas directly
+                        qrCodeObject = new QRCode(canvas, {
+                            text: url,
+                            width: 256,
+                            height: 256,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                    }
+
                     qrCodeLink.href = url;
                     qrCodeLink.textContent = url;
                     document.getElementById('qrCodeDisplay').classList.remove('hidden');
