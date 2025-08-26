@@ -15,8 +15,8 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <!-- QRCode.js library - MUST be loaded here, at the beginning of body, BEFORE any module script that uses it -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
+    <!-- QRCode.js library - now loaded from jsDelivr -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
         <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Advanced QR Code Generator</h1>
@@ -319,6 +319,10 @@
             if (url) {
                 if (typeof window.QRCode !== 'undefined') { // Explicitly check if the global QRCode object is available
                     showMessage('success', 'QR Code generated successfully!');
+                    // Clear previous QR code before drawing new one
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
                     window.QRCode.toCanvas(canvas, url, { width: 256 }, function (error) {
                         if (error) {
                             console.error('Error in QRCode.toCanvas:', error);
